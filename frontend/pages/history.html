@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>History — DeepShield</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body>
+  <div id="toast-container"></div>
+
+  <!-- Details Modal -->
+  <div id="detail-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <h2 id="modal-title" style="font-weight:600; color:#f1f5f9;">Scan Details</h2>
+        <button onclick="closeModal()" class="btn btn-ghost" style="padding:0.375rem 0.75rem;" aria-label="Close modal">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <button id="sidebar-toggle" class="btn btn-ghost" style="padding:0.5rem;" aria-label="Toggle sidebar">☰</button>
+          <h1 style="font-size:1.125rem; font-weight:600; color:#f1f5f9;">History</h1>
+        </div>
+        <div style="display:flex; gap:0.75rem;">
+          <button id="export-btn" class="btn btn-ghost" style="font-size:0.8rem;">⬇ Export CSV</button>
+          <button id="clear-all-btn" class="btn btn-danger" style="font-size:0.8rem;">🗑 Clear All</button>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <!-- Filters -->
+        <div class="card" style="margin-bottom:1rem; display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end;">
+          <div class="form-group" style="flex:1; min-width:180px;">
+            <label class="form-label">Search filename</label>
+            <input type="search" id="search-input" class="form-input" placeholder="Search…" style="padding:0.5rem 0.75rem;"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Result</label>
+            <select id="label-filter" class="form-input" style="padding:0.5rem 0.75rem; cursor:pointer;">
+              <option value="">All Results</option>
+              <option value="REAL">Real</option>
+              <option value="FAKE">Fake</option>
+              <option value="UNCERTAIN">Uncertain</option>
+              <option value="NO_FACE">No Face</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <select id="type-filter" class="form-input" style="padding:0.5rem 0.75rem; cursor:pointer;">
+              <option value="">All Types</option>
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">From</label>
+            <input type="date" id="date-from" class="form-input" style="padding:0.5rem 0.75rem;"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">To</label>
+            <input type="date" id="date-to" class="form-input" style="padding:0.5rem 0.75rem;"/>
+          </div>
+          <button class="btn btn-ghost" id="reset-filters" style="font-size:0.8rem; height:38px;">Reset</button>
+        </div>
+
+        <!-- Table -->
+        <div class="card" style="padding:0; overflow:hidden;">
+          <div id="table-wrap" style="overflow-x:auto;">
+            <div id="table-skeleton" style="padding:1.5rem;">
+              <div class="skeleton" style="height:40px; margin-bottom:0.75rem;"></div>
+              <div class="skeleton" style="height:56px; margin-bottom:0.5rem;"></div>
+              <div class="skeleton" style="height:56px; margin-bottom:0.5rem;"></div>
+              <div class="skeleton" style="height:56px;"></div>
+            </div>
+            <table class="data-table" id="history-table" style="display:none;">
+              <thead>
+                <tr>
+                  <th style="width:60px;">Thumb</th>
+                  <th>Filename</th>
+                  <th>Type</th>
+                  <th>Result</th>
+                  <th>Confidence</th>
+                  <th>Date</th>
+                  <th style="width:100px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="history-tbody"></tbody>
+            </table>
+            <div id="history-empty" style="display:none; text-align:center; padding:3rem; color:#475569;">
+              <div style="font-size:2.5rem; margin-bottom:0.75rem;">📋</div>
+              <p style="font-weight:500; color:#64748b;">No scans found</p>
+              <p style="font-size:0.875rem; margin-top:0.25rem;">Try adjusting your filters or <a href="/pages/detect.html" style="color:#0ea5e9; text-decoration:none;">upload a file</a>.</p>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div id="pagination-bar" style="display:flex; align-items:center; justify-content:space-between; padding:0.875rem 1rem; border-top:1px solid #334155;">
+            <span id="page-info" style="font-size:0.8rem; color:#64748b;"></span>
+            <div class="pagination" id="pagination-btns"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/toast.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/layout.js"></script>
+  <script>
+    initLayout('history');
+
+    let currentPage = 1, totalPages = 1;
+
+    const searchInput = document.getElementById('search-input');
+    const labelFilter = document.getElementById('label-filter');
+    const typeFilter = document.getElementById('type-filter');
+    const dateFrom = document.getElementById('date-from');
+    const dateTo = document.getElementById('date-to');
+
+    function getFilters() {
+      return {
+        search: searchInput.value.trim(),
+        label: labelFilter.value,
+        file_type: typeFilter.value,
+        date_from: dateFrom.value,
+        date_to: dateTo.value,
+      };
+    }
+
+    async function loadHistory(page = 1) {
+      const f = getFilters();
+      const params = new URLSearchParams({ page, per_page: 20 });
+      if (f.search) params.set('search', f.search);
+      if (f.label) params.set('label', f.label);
+      if (f.file_type) params.set('file_type', f.file_type);
+      if (f.date_from) params.set('date_from', f.date_from);
+      if (f.date_to) params.set('date_to', f.date_to);
+
+      try {
+        const data = await DS.apiFetch('/api/history?' + params.toString());
+        currentPage = data.page;
+        totalPages = data.pages;
+        renderTable(data.items, data.total);
+        renderPagination(data.total, data.pages, data.page, data.per_page);
+      } catch (err) {
+        showToast('Failed to load history: ' + err.message, 'error');
+      }
+    }
+
+    const labelBadgeMap = { REAL: 'badge-real', FAKE: 'badge-fake', UNCERTAIN: 'badge-uncertain', NO_FACE: 'badge-noface' };
+    const labelText = { REAL: '✅ REAL', FAKE: '❌ FAKE', UNCERTAIN: '⚠️ UNCERTAIN', NO_FACE: '👤 NO FACE' };
+
+    function renderTable(items, total) {
+      document.getElementById('table-skeleton').style.display = 'none';
+      const table = document.getElementById('history-table');
+      const empty = document.getElementById('history-empty');
+
+      if (!items.length) { table.style.display = 'none'; empty.style.display = 'block'; return; }
+      table.style.display = 'table'; empty.style.display = 'none';
+
+      document.getElementById('history-tbody').innerHTML = items.map(s => `
+        <tr>
+          <td>
+            ${s.thumbnail_path
+              ? `<img src="${thumbUrl(s.thumbnail_path)}" style="width:48px; height:48px; object-fit:cover; border-radius:0.375rem;" alt=""/>`
+              : `<div style="width:48px;height:48px;background:#334155;border-radius:0.375rem;display:flex;align-items:center;justify-content:center;font-size:1.25rem;">${s.file_type==='video'?'🎥':'🖼️'}</div>`
+            }
+          </td>
+          <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${s.original_filename}">${s.original_filename}</td>
+          <td style="text-transform:capitalize; color:#94a3b8;">${s.file_type}</td>
+          <td><span class="badge ${labelBadgeMap[s.label] || 'badge-noface'}">${labelText[s.label] || s.label}</span></td>
+          <td>${Math.round(s.confidence*100)}%</td>
+          <td style="color:#64748b; white-space:nowrap;">${new Date(s.created_at).toLocaleString()}</td>
+          <td>
+            <div style="display:flex; gap:0.375rem;">
+              <button class="btn btn-ghost" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="openDetail(${s.id})" aria-label="View details">👁</button>
+              <button class="btn btn-danger" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="deleteScan(${s.id})" aria-label="Delete scan">🗑</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function thumbUrl(path) {
+      return path.replace(/\\/g, '/').replace(/^.*uploads\//, '/uploads/');
+    }
+
+    function renderPagination(total, pages, page, perPage) {
+      document.getElementById('page-info').textContent = `Showing ${Math.min((page-1)*perPage+1, total)}–${Math.min(page*perPage, total)} of ${total}`;
+      const btnContainer = document.getElementById('pagination-btns');
+      btnContainer.innerHTML = '';
+
+      const addBtn = (text, targetPage, active = false, disabled = false) => {
+        const btn = document.createElement('button');
+        btn.className = 'page-btn' + (active ? ' active' : '');
+        btn.textContent = text;
+        btn.disabled = disabled;
+        if (!disabled && !active) btn.onclick = () => loadHistory(targetPage);
+        btnContainer.appendChild(btn);
+      };
+
+      addBtn('«', 1, false, page <= 1);
+      addBtn('‹', page-1, false, page <= 1);
+      for (let p = Math.max(1, page-2); p <= Math.min(pages, page+2); p++) addBtn(p, p, p === page);
+      addBtn('›', page+1, false, page >= pages);
+      addBtn('»', pages, false, page >= pages);
+    }
+
+    async function openDetail(id) {
+      try {
+        const s = await DS.apiFetch('/api/history/' + id);
+        const modal = document.getElementById('detail-modal');
+        const heatPath = s.heatmap_path ? s.heatmap_path.replace(/\\/g,'/').replace(/^.*heatmaps\//,'/heatmaps/') : null;
+        document.getElementById('modal-body').innerHTML = `
+          <div style="display:grid; gap:0.75rem;">
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+              <span class="badge ${labelBadgeMap[s.label] || 'badge-noface'}" style="font-size:1rem; padding:0.5rem 1rem;">${labelText[s.label]||s.label}</span>
+              <span style="font-size:1.25rem; font-weight:700; color:#f1f5f9;">${Math.round(s.confidence*100)}% confidence</span>
+            </div>
+            <p style="color:#64748b; font-size:0.875rem;">📄 ${s.original_filename} · ${s.file_type} · ${s.file_size_bytes ? (s.file_size_bytes/1024/1024).toFixed(2)+' MB' : 'unknown size'}</p>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem;">
+              <div style="background:#0f172a; border-radius:0.5rem; padding:0.625rem; text-align:center;">
+                <div style="font-size:0.65rem; color:#64748b; text-transform:uppercase;">Fake Prob.</div>
+                <div style="font-weight:700; color:#f1f5f9;">${Math.round(s.fake_probability*100)}%</div>
+              </div>
+              <div style="background:#0f172a; border-radius:0.5rem; padding:0.625rem; text-align:center;">
+                <div style="font-size:0.65rem; color:#64748b; text-transform:uppercase;">Faces</div>
+                <div style="font-weight:700; color:#f1f5f9;">${s.faces_detected}</div>
+              </div>
+              <div style="background:#0f172a; border-radius:0.5rem; padding:0.625rem; text-align:center;">
+                <div style="font-size:0.65rem; color:#64748b; text-transform:uppercase;">Time</div>
+                <div style="font-weight:700; color:#f1f5f9;">${s.processing_time_ms}ms</div>
+              </div>
+            </div>
+            ${s.warnings && s.warnings.length ? `<div style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:0.5rem; padding:0.75rem;">${s.warnings.map(w=>`<p style="font-size:0.8rem;color:#fbbf24;margin:0.2rem 0;">⚠️ ${w}</p>`).join('')}</div>` : ''}
+            ${heatPath ? `<div><p style="font-size:0.75rem; color:#64748b; margin-bottom:0.5rem;">Grad-CAM Heatmap</p><img src="${heatPath}" style="width:100%; border-radius:0.5rem; border:1px solid #334155;" alt="Heatmap"/></div>` : ''}
+            <p style="font-size:0.75rem; color:#475569;">Scanned: ${new Date(s.created_at).toLocaleString()}</p>
+          </div>
+        `;
+        modal.style.display = 'flex';
+      } catch (err) {
+        showToast('Failed to load scan details: ' + err.message, 'error');
+      }
+    }
+
+    function closeModal() { document.getElementById('detail-modal').style.display = 'none'; }
+    document.getElementById('detail-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    async function deleteScan(id) {
+      if (!confirm('Delete this scan from history?')) return;
+      try {
+        await DS.apiFetch('/api/history/' + id, { method: 'DELETE' });
+        showToast('Scan deleted.', 'success');
+        loadHistory(currentPage);
+      } catch (err) {
+        showToast('Delete failed: ' + err.message, 'error');
+      }
+    }
+
+    document.getElementById('clear-all-btn').addEventListener('click', async () => {
+      if (!confirm('Delete ALL scan history? This cannot be undone.')) return;
+      try {
+        await DS.apiFetch('/api/history', { method: 'DELETE' });
+        showToast('History cleared.', 'success');
+        loadHistory(1);
+      } catch (err) {
+        showToast('Clear failed: ' + err.message, 'error');
+      }
+    });
+
+    document.getElementById('export-btn').addEventListener('click', async () => {
+      const token = DS.getToken();
+      const a = document.createElement('a');
+      a.href = '/api/history/export';
+      // For auth, we create a temporary link — browser fetch doesn't download easily
+      // Use fetch + blob approach
+      try {
+        const res = await fetch('/api/history/export', { headers: { Authorization: 'Bearer ' + token } });
+        const blob = await res.blob();
+        a.href = URL.createObjectURL(blob);
+        a.download = 'deepshield_history.csv';
+        a.click();
+        showToast('CSV exported!', 'success');
+      } catch (err) {
+        showToast('Export failed: ' + err.message, 'error');
+      }
+    });
+
+    // Filter events
+    let debounceTimer;
+    searchInput.addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => loadHistory(1), 400); });
+    labelFilter.addEventListener('change', () => loadHistory(1));
+    typeFilter.addEventListener('change', () => loadHistory(1));
+    dateFrom.addEventListener('change', () => loadHistory(1));
+    dateTo.addEventListener('change', () => loadHistory(1));
+    document.getElementById('reset-filters').addEventListener('click', () => {
+      searchInput.value=''; labelFilter.value=''; typeFilter.value=''; dateFrom.value=''; dateTo.value='';
+      loadHistory(1);
+    });
+
+    loadHistory(1);
+  </script>
+</body>
+</html>
+

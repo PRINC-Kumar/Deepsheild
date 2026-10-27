@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>How It Works — DeepShield</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div class="layout">
+    <aside class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <button id="sidebar-toggle" class="btn btn-ghost" style="padding:0.5rem;">☰</button>
+          <h1 style="font-size:1.125rem; font-weight:600; color:#f1f5f9;">How It Works</h1>
+        </div>
+        <span id="topbar-user" style="font-size:0.8rem; color:#64748b;"></span>
+      </header>
+
+      <main class="page-content" style="max-width:800px; margin:0 auto;">
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+          <div class="card">
+            <h2 style="font-size:1.25rem; font-weight:700; color:#f1f5f9; margin-bottom:1rem;">🧠 The AI Model</h2>
+            <p style="color:#94a3b8; line-height:1.8;">
+              DeepShield uses a deep learning model (convolutional neural network) trained to distinguish between authentic faces and faces generated or manipulated by AI (deepfakes). The model was trained on datasets containing both real and synthetic face videos.
+            </p>
+            <br/>
+            <p style="color:#94a3b8; line-height:1.8;">
+              When you upload media, the system:
+            </p>
+            <ol style="color:#94a3b8; padding-left:1.5rem; line-height:2;">
+              <li>Detects all faces using OpenCV Haar Cascades</li>
+              <li>Extracts and normalizes the facial region</li>
+              <li>Passes it through the neural network</li>
+              <li>Returns a fake probability score between 0 (definitely real) and 1 (definitely fake)</li>
+            </ol>
+          </div>
+
+          <div class="card">
+            <h2 style="font-size:1.25rem; font-weight:700; color:#f1f5f9; margin-bottom:1rem;">🔥 Grad-CAM Heatmaps</h2>
+            <p style="color:#94a3b8; line-height:1.8;">
+              Gradient-weighted Class Activation Mapping (Grad-CAM) visualizes which parts of the image the model focused on when making its decision. Brighter/red areas indicate regions that most influenced the output.
+            </p>
+            <br/>
+            <p style="color:#94a3b8; line-height:1.8;">
+              For deepfakes, the model often focuses on: blending boundaries around the face, unnatural eye/teeth regions, skin texture artifacts, and lighting inconsistencies.
+            </p>
+          </div>
+
+          <div class="card">
+            <h2 style="font-size:1.25rem; font-weight:700; color:#f1f5f9; margin-bottom:1rem;">📊 Confidence Scores &amp; Labels</h2>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+              <div style="display:flex; align-items:center; gap:1rem; background:#0f172a; border-radius:0.5rem; padding:0.875rem;">
+                <span class="badge badge-real">✅ REAL</span>
+                <p style="color:#94a3b8; font-size:0.875rem;">Fake probability below 40%. The model is confident the image is authentic.</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:1rem; background:#0f172a; border-radius:0.5rem; padding:0.875rem;">
+                <span class="badge badge-fake">❌ FAKE</span>
+                <p style="color:#94a3b8; font-size:0.875rem;">Fake probability above 60%. The model detected likely deepfake artifacts.</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:1rem; background:#0f172a; border-radius:0.5rem; padding:0.875rem;">
+                <span class="badge badge-uncertain">⚠️ UNCERTAIN</span>
+                <p style="color:#94a3b8; font-size:0.875rem;">Fake probability between 40–60%. Too close to call — manual review recommended.</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:1rem; background:#0f172a; border-radius:0.5rem; padding:0.875rem;">
+                <span class="badge badge-noface">👤 NO FACE</span>
+                <p style="color:#94a3b8; font-size:0.875rem;">No human face was detected. The model cannot make a verdict without a face.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 style="font-size:1.25rem; font-weight:700; color:#f1f5f9; margin-bottom:1rem;">🎥 Video Analysis</h2>
+            <p style="color:#94a3b8; line-height:1.8;">
+              For videos, DeepShield samples one frame approximately every 10 frames (up to 100 frames total, within the first 60 seconds). Each frame is analyzed independently. The final verdict is based on the <strong>mean fake probability</strong> across all face-containing frames, and the per-frame results are shown in a timeline chart.
+            </p>
+          </div>
+
+          <div class="card" style="border-color:rgba(239,68,68,0.3);">
+            <h2 style="font-size:1.25rem; font-weight:700; color:#f1f5f9; margin-bottom:1rem;">⚠️ Important Limitations</h2>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+              <div style="background:rgba(239,68,68,0.08); border-radius:0.5rem; padding:0.875rem;">
+                <p style="color:#fca5a5; font-size:0.875rem; font-weight:600; margin-bottom:0.25rem;">No AI detector is 100% accurate.</p>
+                <p style="color:#94a3b8; font-size:0.8rem;">DeepShield results are probabilistic. False positives and false negatives occur.</p>
+              </div>
+              <div style="background:rgba(239,68,68,0.08); border-radius:0.5rem; padding:0.875rem;">
+                <p style="color:#fca5a5; font-size:0.875rem; font-weight:600; margin-bottom:0.25rem;">Not legal evidence.</p>
+                <p style="color:#94a3b8; font-size:0.8rem;">Results must never be the sole basis for legal, criminal, or consequential decisions. Always consult domain experts.</p>
+              </div>
+              <div style="background:rgba(239,68,68,0.08); border-radius:0.5rem; padding:0.875rem;">
+                <p style="color:#fca5a5; font-size:0.875rem; font-weight:600; margin-bottom:0.25rem;">Low quality images reduce accuracy.</p>
+                <p style="color:#94a3b8; font-size:0.8rem;">Blurry, dark, very small, or heavily compressed images are harder to analyze reliably.</p>
+              </div>
+              <div style="background:rgba(239,68,68,0.08); border-radius:0.5rem; padding:0.875rem;">
+                <p style="color:#fca5a5; font-size:0.875rem; font-weight:600; margin-bottom:0.25rem;">Model may not catch all deepfake methods.</p>
+                <p style="color:#94a3b8; font-size:0.8rem;">New deepfake techniques emerge regularly. The model performs best on manipulation types it was trained on.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 style="font-size:1.25rem; font-weight:700; color:#f1f5f9; margin-bottom:1rem;">🔒 Privacy</h2>
+            <p style="color:#94a3b8; line-height:1.8;">
+              DeepShield runs entirely on your local machine. Your uploaded images and videos are stored locally in the <code style="background:#0f172a; padding:0.125rem 0.375rem; border-radius:0.25rem; font-size:0.8rem;">uploads/</code> directory and are never sent to any external server. Webcam frames are analyzed in real time and are <strong>never saved to history</strong>.
+            </p>
+            <br/>
+            <p style="color:#94a3b8; line-height:1.8;">
+              Files are automatically deleted after a configurable number of days (set in <code style="background:#0f172a; padding:0.125rem 0.375rem; border-radius:0.25rem; font-size:0.8rem;">AUTO_DELETE_UPLOADS_DAYS</code> in your <code style="background:#0f172a; padding:0.125rem 0.375rem; border-radius:0.25rem; font-size:0.8rem;">.env</code>).
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/toast.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/layout.js"></script>
+  <script>initLayout('about');</script>
+</body>
+</html>
+

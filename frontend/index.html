@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeepShield — AI Deepfake Detection</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/main.css"/>
+  <style>
+    body { background: #0f172a; }
+    .hero-gradient {
+      background: radial-gradient(ellipse at 50% 0%, rgba(14,165,233,0.15) 0%, transparent 60%);
+    }
+    .feature-card {
+      background: rgba(30,41,59,0.8);
+      border: 1px solid #334155;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: #0ea5e9; }
+    .shield-icon {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      border-radius: 1.25rem;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+    .step-num {
+      width: 36px; height: 36px;
+      background: rgba(14,165,233,0.2);
+      border: 1px solid #0ea5e9;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      color: #0ea5e9;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Nav -->
+  <nav style="padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1e293b; position:sticky; top:0; background:rgba(15,23,42,0.9); backdrop-filter:blur(12px); z-index:50;">
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span style="font-size:1.25rem; font-weight:700; color:#f1f5f9;">DeepShield</span>
+    </div>
+    <div style="display:flex; gap:0.75rem;">
+      <a href="/pages/login.html" class="btn btn-ghost">Sign In</a>
+      <a href="/pages/signup.html" class="btn btn-primary">Get Started →</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero-gradient" style="text-align:center; padding:6rem 1.5rem 5rem;">
+    <div class="shield-icon">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+    </div>
+    <h1 style="font-size:clamp(2rem,5vw,3.5rem); font-weight:800; color:#f1f5f9; line-height:1.2; margin-bottom:1rem;">
+      Detect Deepfakes with<br/>
+      <span style="background:linear-gradient(90deg,#0ea5e9,#6366f1); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">AI-Powered Precision</span>
+    </h1>
+    <p style="font-size:1.125rem; color:#94a3b8; max-width:600px; margin:0 auto 2rem;">
+      Upload images or videos, or use your live webcam. DeepShield analyzes faces with deep learning
+      and shows you <em>why</em> it made its decision using Grad-CAM heatmaps.
+    </p>
+    <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+      <a href="/pages/signup.html" class="btn btn-primary" style="padding:0.75rem 2rem; font-size:1rem;">
+        🛡️ Start Detecting Free
+      </a>
+      <a href="/pages/about.html" class="btn btn-ghost" style="padding:0.75rem 1.5rem; font-size:1rem;">
+        Learn How It Works
+      </a>
+    </div>
+    <!-- Demo badges -->
+    <div style="display:flex; gap:1rem; justify-content:center; margin-top:3rem; flex-wrap:wrap;">
+      <span class="badge badge-real">✓ Real Face Detected</span>
+      <span class="badge badge-fake">✗ Deepfake Detected — 94.2%</span>
+      <span class="badge badge-uncertain">? Uncertain — Manual Review</span>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section style="padding:4rem 2rem; max-width:1100px; margin:0 auto;">
+    <h2 style="text-align:center; font-size:1.75rem; font-weight:700; color:#f1f5f9; margin-bottom:0.75rem;">What DeepShield Does</h2>
+    <p style="text-align:center; color:#64748b; margin-bottom:3rem;">Everything you need to verify media authenticity</p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1.5rem;">
+      <div class="feature-card">
+        <div style="font-size:2rem; margin-bottom:1rem;">🖼️</div>
+        <h3 style="font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Image Analysis</h3>
+        <p style="color:#64748b; font-size:0.875rem; line-height:1.6;">Upload any image. DeepShield detects all faces, analyzes each one, and returns a verdict with confidence score.</p>
+      </div>
+      <div class="feature-card">
+        <div style="font-size:2rem; margin-bottom:1rem;">🎥</div>
+        <h3 style="font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Video Detection</h3>
+        <p style="color:#64748b; font-size:0.875rem; line-height:1.6;">Frame-by-frame analysis of videos up to 60 seconds. See a per-frame probability timeline chart.</p>
+      </div>
+      <div class="feature-card">
+        <div style="font-size:2rem; margin-bottom:1rem;">📷</div>
+        <h3 style="font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Live Webcam</h3>
+        <p style="color:#64748b; font-size:0.875rem; line-height:1.6;">Real-time detection from your camera. Results update every 500ms with no request queuing.</p>
+      </div>
+      <div class="feature-card">
+        <div style="font-size:2rem; margin-bottom:1rem;">🔥</div>
+        <h3 style="font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Grad-CAM Heatmaps</h3>
+        <p style="color:#64748b; font-size:0.875rem; line-height:1.6;">See exactly which pixels triggered the deepfake detection. Full explainability.</p>
+      </div>
+      <div class="feature-card">
+        <div style="font-size:2rem; margin-bottom:1rem;">📋</div>
+        <h3 style="font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Full History</h3>
+        <p style="color:#64748b; font-size:0.875rem; line-height:1.6;">Every scan is saved. Search, filter, export to CSV, and view detailed results at any time.</p>
+      </div>
+      <div class="feature-card">
+        <div style="font-size:2rem; margin-bottom:1rem;">🔒</div>
+        <h3 style="font-weight:600; color:#f1f5f9; margin-bottom:0.5rem;">Private & Local</h3>
+        <p style="color:#64748b; font-size:0.875rem; line-height:1.6;">Runs entirely on your machine. Your media never leaves your server.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section style="padding:4rem 2rem; max-width:700px; margin:0 auto; border-top:1px solid #1e293b;">
+    <h2 style="text-align:center; font-size:1.75rem; font-weight:700; color:#f1f5f9; margin-bottom:3rem;">How It Works</h2>
+    <div style="display:flex; flex-direction:column; gap:2rem;">
+      <div style="display:flex; gap:1.25rem; align-items:flex-start;">
+        <div class="step-num">1</div>
+        <div>
+          <h3 style="font-weight:600; color:#f1f5f9; margin-bottom:0.25rem;">Upload Media</h3>
+          <p style="color:#64748b; font-size:0.875rem;">Drag and drop an image or video, or stream from your webcam.</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:1.25rem; align-items:flex-start;">
+        <div class="step-num">2</div>
+        <div>
+          <h3 style="font-weight:600; color:#f1f5f9; margin-bottom:0.25rem;">AI Analysis</h3>
+          <p style="color:#64748b; font-size:0.875rem;">Deep learning model examines facial patterns, artifacts, and inconsistencies.</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:1.25rem; align-items:flex-start;">
+        <div class="step-num">3</div>
+        <div>
+          <h3 style="font-weight:600; color:#f1f5f9; margin-bottom:0.25rem;">Get Your Result</h3>
+          <p style="color:#64748b; font-size:0.875rem;">REAL, FAKE, or UNCERTAIN verdict + confidence score + Grad-CAM heatmap showing <em>why</em>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="text-align:center; padding:4rem 1.5rem; border-top:1px solid #1e293b;">
+    <h2 style="font-size:1.75rem; font-weight:700; color:#f1f5f9; margin-bottom:1rem;">Ready to detect deepfakes?</h2>
+    <p style="color:#64748b; margin-bottom:2rem;">Free, private, and runs on your own machine.</p>
+    <a href="/pages/signup.html" class="btn btn-primary" style="padding:0.875rem 2.5rem; font-size:1rem;">
+      Create Free Account →
+    </a>
+  </section>
+
+  <footer style="border-top:1px solid #1e293b; padding:1.5rem 2rem; text-align:center; color:#475569; font-size:0.8rem;">
+    DeepShield · Built for research and awareness · Results are probabilistic and not legal evidence.
+  </footer>
+</body>
+</html>
+

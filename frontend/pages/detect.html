@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload & Detect — DeepShield</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div class="layout">
+    <aside class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <button id="sidebar-toggle" class="btn btn-ghost" style="padding:0.5rem;" aria-label="Toggle sidebar">☰</button>
+          <h1 style="font-size:1.125rem; font-weight:600; color:#f1f5f9;">Upload &amp; Detect</h1>
+        </div>
+        <span id="topbar-user" style="font-size:0.8rem; color:#64748b;"></span>
+      </header>
+
+      <main class="page-content" style="max-width:900px; margin:0 auto;">
+        <!-- Upload area -->
+        <div class="card" style="margin-bottom:1.5rem;">
+          <h2 style="font-weight:600; color:#f1f5f9; margin-bottom:1rem;">Analyze Media</h2>
+
+          <div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Drop zone for image or video upload">
+            <input type="file" id="file-input" accept="image/*,video/*" style="display:none;" aria-label="File input"/>
+            <div id="drop-content">
+              <div style="font-size:2.5rem; margin-bottom:0.75rem;">📁</div>
+              <p style="color:#e2e8f0; font-weight:500; margin-bottom:0.25rem;">Drop an image or video here</p>
+              <p style="color:#64748b; font-size:0.8rem; margin-bottom:1rem;">or click to browse</p>
+              <p style="color:#475569; font-size:0.75rem;">Images: JPG, PNG, WebP, BMP (max 10 MB) · Videos: MP4, AVI, MOV, MKV (max 100 MB, 60s)</p>
+            </div>
+            <div id="preview-content" style="display:none;">
+              <img id="img-preview" style="max-height:240px; border-radius:0.5rem; display:none;" alt="Preview"/>
+              <video id="vid-preview" style="max-height:240px; border-radius:0.5rem; display:none;" controls muted></video>
+              <p id="file-name" style="color:#94a3b8; font-size:0.875rem; margin-top:0.75rem;"></p>
+              <button class="btn btn-ghost" id="clear-btn" style="margin-top:0.5rem; font-size:0.8rem;">✕ Remove</button>
+            </div>
+          </div>
+
+          <!-- Progress -->
+          <div id="progress-wrap" style="display:none; margin-top:1rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748b; margin-bottom:0.375rem;">
+              <span id="progress-label">Uploading…</span>
+              <span id="progress-pct">0%</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="progress-fill" style="width:0%; background:#0ea5e9;"></div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+            <button class="btn btn-primary" id="analyze-btn" disabled style="flex:1; justify-content:center; padding:0.75rem;">
+              🔍 Analyze
+            </button>
+          </div>
+        </div>
+
+        <!-- Result panel -->
+        <div id="result-panel" style="display:none;">
+          <div class="card" style="margin-bottom:1rem;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <h2 style="font-weight:700; color:#f1f5f9; font-size:1.25rem; margin-bottom:0.5rem;">Analysis Result</h2>
+                <div id="result-badge"></div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:2rem; font-weight:800;" id="result-confidence"></div>
+                <div style="font-size:0.75rem; color:#64748b;">confidence</div>
+              </div>
+            </div>
+
+            <!-- Confidence bar -->
+            <div style="margin-bottom:1.25rem;">
+              <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#64748b; margin-bottom:0.375rem;">
+                <span>REAL</span><span>UNCERTAIN</span><span>FAKE</span>
+              </div>
+              <div class="conf-meter">
+                <div class="conf-meter-fill" id="conf-meter-fill" style="width:0%;"></div>
+              </div>
+            </div>
+
+            <!-- Meta -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.75rem; margin-bottom:1.25rem;">
+              <div style="background:#0f172a; border-radius:0.5rem; padding:0.75rem;">
+                <div style="font-size:0.7rem; color:#64748b; text-transform:uppercase; margin-bottom:0.25rem;">Faces Detected</div>
+                <div style="font-size:1.25rem; font-weight:700; color:#f1f5f9;" id="result-faces">0</div>
+              </div>
+              <div style="background:#0f172a; border-radius:0.5rem; padding:0.75rem;">
+                <div style="font-size:0.7rem; color:#64748b; text-transform:uppercase; margin-bottom:0.25rem;">Fake Probability</div>
+                <div style="font-size:1.25rem; font-weight:700; color:#f1f5f9;" id="result-fake-prob">0%</div>
+              </div>
+              <div style="background:#0f172a; border-radius:0.5rem; padding:0.75rem;">
+                <div style="font-size:0.7rem; color:#64748b; text-transform:uppercase; margin-bottom:0.25rem;">Processing Time</div>
+                <div style="font-size:1.25rem; font-weight:700; color:#f1f5f9;" id="result-time">0ms</div>
+              </div>
+            </div>
+
+            <!-- Warnings -->
+            <div id="result-warnings" style="display:none; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:0.5rem; padding:0.75rem; margin-bottom:1.25rem;"></div>
+
+            <!-- Heatmap comparison -->
+            <div id="heatmap-section" style="display:none;">
+              <h3 style="font-size:0.875rem; font-weight:600; color:#94a3b8; margin-bottom:0.75rem;">Grad-CAM Heatmap — AI Attention Map</h3>
+              <div class="heatmap-compare">
+                <div>
+                  <p style="font-size:0.75rem; color:#64748b; margin-bottom:0.375rem;">Original</p>
+                  <img id="heatmap-original" src="" alt="Original image"/>
+                </div>
+                <div>
+                  <p style="font-size:0.75rem; color:#64748b; margin-bottom:0.375rem;">Heatmap (red = high attention)</p>
+                  <img id="heatmap-img" src="" alt="Grad-CAM heatmap"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video frame timeline -->
+          <div id="video-timeline" style="display:none;" class="card">
+            <h3 style="font-size:0.875rem; font-weight:600; color:#94a3b8; margin-bottom:0.75rem;">Per-Frame Fake Probability</h3>
+            <canvas id="frame-chart" height="120"></canvas>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/toast.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/layout.js"></script>
+  <script>
+    initLayout('detect');
+
+    let selectedFile = null;
+    let frameChart = null;
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const analyzeBtn = document.getElementById('analyze-btn');
+
+    // ── Drop zone ──────────────────────────────────────────────────────────
+    dropZone.addEventListener('click', () => !selectedFile && fileInput.click());
+    dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) loadFile(file);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+    document.getElementById('clear-btn').addEventListener('click', clearFile);
+
+    function loadFile(file) {
+      selectedFile = file;
+      const isVideo = file.type.startsWith('video/');
+      document.getElementById('drop-content').style.display = 'none';
+      document.getElementById('preview-content').style.display = 'block';
+      document.getElementById('file-name').textContent = `${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
+      document.getElementById('img-preview').style.display = isVideo ? 'none' : 'block';
+      document.getElementById('vid-preview').style.display = isVideo ? 'block' : 'none';
+
+      if (isVideo) {
+        document.getElementById('vid-preview').src = URL.createObjectURL(file);
+      } else {
+        document.getElementById('img-preview').src = URL.createObjectURL(file);
+      }
+      analyzeBtn.disabled = false;
+      document.getElementById('result-panel').style.display = 'none';
+    }
+
+    function clearFile() {
+      selectedFile = null;
+      fileInput.value = '';
+      document.getElementById('drop-content').style.display = 'block';
+      document.getElementById('preview-content').style.display = 'none';
+      analyzeBtn.disabled = true;
+      document.getElementById('result-panel').style.display = 'none';
+    }
+
+    // ── Analyze ────────────────────────────────────────────────────────────
+    analyzeBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      const isVideo = selectedFile.type.startsWith('video/');
+      const endpoint = isVideo ? '/api/detect/video' : '/api/detect/image';
+
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = '⏳ Analyzing…';
+      showProgress(isVideo ? 'Uploading video…' : 'Uploading image…');
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        // Fake progress animation
+        let pct = 0;
+        const timer = setInterval(() => {
+          pct = Math.min(pct + (isVideo ? 1 : 3), 90);
+          setProgress(pct, isVideo ? 'Analyzing frames…' : 'Running AI model…');
+        }, 200);
+
+        const result = await DS.apiFetch(endpoint, { method: 'POST', body: formData });
+        clearInterval(timer);
+        setProgress(100, 'Done!');
+        setTimeout(() => hideProgress(), 800);
+
+        renderResult(result, isVideo);
+        showToast('Analysis complete!', 'success');
+      } catch (err) {
+        hideProgress();
+        showToast(err.message, 'error');
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = '🔍 Analyze';
+      }
+    });
+
+    function showProgress(label) {
+      document.getElementById('progress-wrap').style.display = 'block';
+      document.getElementById('progress-label').textContent = label;
+      document.getElementById('progress-fill').style.width = '0%';
+    }
+    function setProgress(pct, label) {
+      document.getElementById('progress-pct').textContent = pct + '%';
+      document.getElementById('progress-fill').style.width = pct + '%';
+      if (label) document.getElementById('progress-label').textContent = label;
+    }
+    function hideProgress() { document.getElementById('progress-wrap').style.display = 'none'; }
+
+    function renderResult(r, isVideo) {
+      const panel = document.getElementById('result-panel');
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      const labelMap = {
+        REAL: ['badge-real', '✅ REAL'],
+        FAKE: ['badge-fake', '❌ FAKE'],
+        UNCERTAIN: ['badge-uncertain', '⚠️ UNCERTAIN'],
+        NO_FACE: ['badge-noface', '👤 NO FACE'],
+      };
+      const [badgeClass, badgeText] = labelMap[r.label] || ['badge-noface', r.label];
+      document.getElementById('result-badge').innerHTML = `<span class="badge ${badgeClass}" style="font-size:1rem; padding:0.5rem 1rem;">${badgeText}</span>`;
+
+      const confPct = Math.round(r.confidence * 100);
+      document.getElementById('result-confidence').textContent = confPct + '%';
+      document.getElementById('result-confidence').style.color =
+        r.label === 'FAKE' ? '#ef4444' : r.label === 'REAL' ? '#22c55e' : '#f59e0b';
+
+      // Meter: fake_probability drives the bar (0=REAL, 1=FAKE)
+      const fp = r.fake_probability;
+      const meterFill = document.getElementById('conf-meter-fill');
+      meterFill.style.width = (fp * 100) + '%';
+      meterFill.style.background = fp > 0.6 ? '#ef4444' : fp < 0.4 ? '#22c55e' : '#f59e0b';
+
+      document.getElementById('result-faces').textContent = r.faces_detected;
+      document.getElementById('result-fake-prob').textContent = Math.round(fp * 100) + '%';
+      document.getElementById('result-time').textContent = r.processing_time_ms + 'ms';
+
+      // Warnings
+      const warnEl = document.getElementById('result-warnings');
+      if (r.warnings && r.warnings.length) {
+        warnEl.style.display = 'block';
+        warnEl.innerHTML = r.warnings.map(w => `<p style="font-size:0.8rem; color:#fbbf24; margin:0.25rem 0;">⚠️ ${w}</p>`).join('');
+      } else {
+        warnEl.style.display = 'none';
+      }
+
+      // Heatmap
+      const heatSection = document.getElementById('heatmap-section');
+      if (r.heatmap_path) {
+        heatSection.style.display = 'block';
+        // Show original preview
+        const orig = document.getElementById('heatmap-original');
+        orig.src = document.getElementById('img-preview').src || '';
+        // Heatmap served from /heatmaps/
+        const heatPath = r.heatmap_path.replace(/\\/g, '/').replace(/^.*heatmaps\//, '/heatmaps/');
+        document.getElementById('heatmap-img').src = heatPath;
+      } else {
+        heatSection.style.display = 'none';
+      }
+
+      // Video timeline
+      const timelineEl = document.getElementById('video-timeline');
+      if (isVideo && r.frame_scores && r.frame_scores.length) {
+        timelineEl.style.display = 'block';
+        if (frameChart) frameChart.destroy();
+        frameChart = new Chart(document.getElementById('frame-chart'), {
+          type: 'line',
+          data: {
+            labels: r.frame_scores.map(f => f.timestamp_s + 's'),
+            datasets: [{
+              label: 'Fake Probability',
+              data: r.frame_scores.map(f => f.fake_probability),
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239,68,68,0.1)',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 2,
+            }, {
+              label: 'Threshold (0.5)',
+              data: r.frame_scores.map(() => 0.5),
+              borderColor: '#f59e0b',
+              borderDash: [5,5],
+              pointRadius: 0,
+            }]
+          },
+          options: {
+            scales: {
+              x: { ticks: { color: '#64748b', maxTicksLimit: 12 }, grid: { color: '#1e293b' } },
+              y: { min: 0, max: 1, ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+            },
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+          }
+        });
+      } else {
+        timelineEl.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
+

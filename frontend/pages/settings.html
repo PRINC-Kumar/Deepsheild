@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Settings — DeepShield</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div class="layout">
+    <aside class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <button id="sidebar-toggle" class="btn btn-ghost" style="padding:0.5rem;">☰</button>
+          <h1 style="font-size:1.125rem; font-weight:600; color:#f1f5f9;">Settings &amp; Profile</h1>
+        </div>
+        <span id="topbar-user" style="font-size:0.8rem; color:#64748b;"></span>
+      </header>
+
+      <main class="page-content" style="max-width:640px; margin:0 auto;">
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+          <!-- Profile -->
+          <div class="card">
+            <h2 style="font-size:1rem; font-weight:600; color:#f1f5f9; margin-bottom:1.25rem;">👤 Profile</h2>
+            <div class="form-group" style="margin-bottom:0.75rem;">
+              <label class="form-label">Email address</label>
+              <input class="form-input" type="email" id="profile-email" disabled/>
+            </div>
+            <p style="font-size:0.75rem; color:#475569;">Member since: <span id="profile-joined">—</span></p>
+          </div>
+
+          <!-- Confidence threshold -->
+          <div class="card">
+            <h2 style="font-size:1rem; font-weight:600; color:#f1f5f9; margin-bottom:0.75rem;">🎯 Confidence Threshold</h2>
+            <p style="color:#64748b; font-size:0.8rem; margin-bottom:1rem; line-height:1.6;">
+              Adjust how sensitive the detector is. Below this value → REAL, above → FAKE.
+              The UNCERTAIN band is always ±10% around the threshold.
+            </p>
+            <div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem;">
+              <input type="range" id="threshold-slider" min="0.3" max="0.7" step="0.01" value="0.5" style="flex:1; accent-color:#0ea5e9;"/>
+              <span id="threshold-value" style="font-size:1.25rem; font-weight:700; color:#0ea5e9; min-width:40px; text-align:right;">50%</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#475569; margin-bottom:1rem;">
+              <span>More sensitive (30%)</span>
+              <span>Default (50%)</span>
+              <span>Less sensitive (70%)</span>
+            </div>
+            <button class="btn btn-primary" id="save-threshold-btn" style="font-size:0.875rem;">Save Threshold</button>
+          </div>
+
+          <!-- Change password -->
+          <div class="card">
+            <h2 style="font-size:1rem; font-weight:600; color:#f1f5f9; margin-bottom:1.25rem;">🔒 Change Password</h2>
+            <form id="pw-form" style="display:flex; flex-direction:column; gap:0.875rem;">
+              <div class="form-group">
+                <label class="form-label" for="current-pw">Current password</label>
+                <input class="form-input" type="password" id="current-pw" placeholder="••••••••" autocomplete="current-password"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="new-pw">New password (min 8 chars)</label>
+                <input class="form-input" type="password" id="new-pw" placeholder="••••••••" autocomplete="new-password" minlength="8"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="confirm-pw">Confirm new password</label>
+                <input class="form-input" type="password" id="confirm-pw" placeholder="••••••••" autocomplete="new-password"/>
+              </div>
+              <div id="pw-error" style="font-size:0.8rem; color:#ef4444; display:none;"></div>
+              <button type="submit" class="btn btn-primary" style="font-size:0.875rem; align-self:flex-start;">Update Password</button>
+            </form>
+          </div>
+
+          <!-- Danger zone -->
+          <div class="card" style="border-color:rgba(239,68,68,0.4);">
+            <h2 style="font-size:1rem; font-weight:600; color:#ef4444; margin-bottom:0.75rem;">⚠️ Danger Zone</h2>
+            <p style="color:#64748b; font-size:0.8rem; margin-bottom:1rem;">Permanently delete your account and all associated scan history. This action cannot be undone.</p>
+            <button class="btn btn-danger" id="delete-account-btn" style="font-size:0.875rem;">Delete My Account</button>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/toast.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/layout.js"></script>
+  <script>
+    initLayout('settings');
+
+    async function loadProfile() {
+      try {
+        const user = await DS.apiFetch('/api/user/me');
+        document.getElementById('profile-email').value = user.email;
+        document.getElementById('profile-joined').textContent = new Date(user.created_at).toLocaleDateString();
+        const slider = document.getElementById('threshold-slider');
+        slider.value = user.confidence_threshold;
+        document.getElementById('threshold-value').textContent = Math.round(user.confidence_threshold * 100) + '%';
+      } catch {}
+    }
+
+    document.getElementById('threshold-slider').addEventListener('input', function() {
+      document.getElementById('threshold-value').textContent = Math.round(this.value * 100) + '%';
+    });
+
+    document.getElementById('save-threshold-btn').addEventListener('click', async () => {
+      const val = parseFloat(document.getElementById('threshold-slider').value);
+      try {
+        await DS.apiFetch('/api/user/me', { method: 'PUT', body: { confidence_threshold: val } });
+        showToast('Threshold saved!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('pw-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('pw-error');
+      errEl.style.display = 'none';
+      const newPw = document.getElementById('new-pw').value;
+      const confirmPw = document.getElementById('confirm-pw').value;
+      if (newPw !== confirmPw) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+      try {
+        await DS.apiFetch('/api/user/me', { method: 'PUT', body: {
+          current_password: document.getElementById('current-pw').value,
+          new_password: newPw
+        }});
+        showToast('Password updated!', 'success');
+        e.target.reset();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      }
+    });
+
+    document.getElementById('delete-account-btn').addEventListener('click', async () => {
+      if (!confirm('Delete your account and ALL data permanently? This cannot be undone.')) return;
+      if (!confirm('Are you absolutely sure? Type OK to confirm.')) return;
+      try {
+        await DS.apiFetch('/api/user/me', { method: 'DELETE' });
+        DS.clearToken();
+        window.location.href = '/';
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>
+

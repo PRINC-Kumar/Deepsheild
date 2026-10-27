@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up — DeepShield</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh; padding:1rem;">
+  <div id="toast-container"></div>
+
+  <div style="width:100%; max-width:420px;">
+    <div style="text-align:center; margin-bottom:2rem;">
+      <div style="display:inline-flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span style="font-size:1.5rem; font-weight:700; color:#f1f5f9;">DeepShield</span>
+      </div>
+      <h1 style="font-size:1.25rem; font-weight:600; color:#f1f5f9;">Create your account</h1>
+      <p style="color:#64748b; font-size:0.875rem; margin-top:0.25rem;">Start detecting deepfakes for free</p>
+    </div>
+
+    <div class="card" style="padding:2rem;">
+      <form id="signup-form">
+        <div style="display:flex; flex-direction:column; gap:1.25rem;">
+          <div class="form-group">
+            <label class="form-label" for="email">Email address</label>
+            <input class="form-input" type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="password">Password <span style="color:#64748b;">(min 8 characters)</span></label>
+            <input class="form-input" type="password" id="password" name="password" placeholder="••••••••" required autocomplete="new-password" minlength="8"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="confirm">Confirm password</label>
+            <input class="form-input" type="password" id="confirm" name="confirm" placeholder="••••••••" required autocomplete="new-password"/>
+          </div>
+          <div id="form-error" style="color:#ef4444; font-size:0.8rem; display:none;"></div>
+          <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%; justify-content:center; padding:0.75rem;">
+            Create Account
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <p style="text-align:center; color:#64748b; font-size:0.875rem; margin-top:1.25rem;">
+      Already have an account? <a href="/pages/login.html" style="color:#0ea5e9; text-decoration:none; font-weight:500;">Sign in →</a>
+    </p>
+    <p style="text-align:center; margin-top:0.5rem;">
+      <a href="/" style="color:#475569; font-size:0.8rem; text-decoration:none;">← Back to home</a>
+    </p>
+  </div>
+
+  <script src="/js/toast.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    if (DS.getToken()) window.location.href = '/pages/dashboard.html';
+
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const errEl = document.getElementById('form-error');
+      errEl.style.display = 'none';
+
+      const pw = e.target.password.value;
+      const confirm = e.target.confirm.value;
+      if (pw !== confirm) {
+        errEl.textContent = 'Passwords do not match.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account…';
+
+      try {
+        const data = await DS.apiFetch('/api/auth/signup', {
+          method: 'POST',
+          body: { email: e.target.email.value, password: pw }
+        });
+        DS.setToken(data.access_token);
+        DS.setUser({ id: data.user_id, email: data.email });
+        window.location.href = '/pages/dashboard.html';
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Webcam — DeepShield</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div class="layout">
+    <aside class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <button id="sidebar-toggle" class="btn btn-ghost" style="padding:0.5rem;" aria-label="Toggle sidebar">☰</button>
+          <h1 style="font-size:1.125rem; font-weight:600; color:#f1f5f9;">Live Webcam Detection</h1>
+        </div>
+        <span id="topbar-user" style="font-size:0.8rem; color:#64748b;"></span>
+      </header>
+
+      <main class="page-content" style="max-width:860px; margin:0 auto;">
+        <div style="display:grid; grid-template-columns:3fr 2fr; gap:1.5rem; align-items:start;">
+          <!-- Camera feed -->
+          <div class="card" style="position:relative; padding:0; overflow:hidden;">
+            <div id="webcam-placeholder" style="aspect-ratio:16/9; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#0f172a; border-radius:0.75rem;">
+              <div style="font-size:3rem; margin-bottom:1rem;">📷</div>
+              <p style="color:#64748b; font-size:0.875rem;">Camera is off</p>
+              <p style="color:#475569; font-size:0.75rem; margin-top:0.25rem;">Click "Start Camera" to begin</p>
+            </div>
+            <div id="webcam-live" style="display:none; position:relative;">
+              <video id="webcam-video" autoplay muted playsinline style="width:100%; display:block; border-radius:0.75rem;"></video>
+              <canvas id="webcam-canvas" style="display:none;"></canvas>
+              <!-- Live overlay -->
+              <div id="live-overlay" style="position:absolute; top:0.75rem; left:0.75rem; right:0.75rem; display:flex; justify-content:space-between; pointer-events:none;">
+                <div id="live-badge" style="background:rgba(0,0,0,0.75); padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; color:#94a3b8;">Waiting…</div>
+                <div id="live-conf" style="background:rgba(0,0,0,0.75); padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; color:#94a3b8;"></div>
+              </div>
+              <div id="live-faces" style="position:absolute; bottom:0.75rem; left:0.75rem; background:rgba(0,0,0,0.75); padding:0.25rem 0.625rem; border-radius:0.375rem; font-size:0.7rem; color:#64748b; pointer-events:none;"></div>
+            </div>
+          </div>
+
+          <!-- Controls & Results -->
+          <div style="display:flex; flex-direction:column; gap:1rem;">
+            <!-- Controls -->
+            <div class="card">
+              <h2 style="font-size:0.875rem; font-weight:600; color:#94a3b8; margin-bottom:1rem;">Controls</h2>
+              <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <button id="start-btn" class="btn btn-primary" style="width:100%; justify-content:center;">▶ Start Camera</button>
+                <button id="stop-btn" class="btn btn-ghost" style="width:100%; justify-content:center; display:none;">⏹ Stop Camera</button>
+              </div>
+              <div id="permission-msg" style="margin-top:0.75rem; font-size:0.75rem; color:#64748b; display:none;"></div>
+              <div style="margin-top:1rem; border-top:1px solid #334155; padding-top:0.75rem;">
+                <p style="font-size:0.7rem; color:#475569; line-height:1.6;">
+                  🔒 Webcam frames are analyzed locally and <strong>not saved</strong> to your history.<br/>
+                  Frames are sent every 500ms. If the previous request is still running, the frame is skipped.
+                </p>
+              </div>
+            </div>
+
+            <!-- Live result -->
+            <div class="card" id="live-result-card">
+              <h2 style="font-size:0.875rem; font-weight:600; color:#94a3b8; margin-bottom:1rem;">Live Result</h2>
+              <div id="live-result-empty" style="text-align:center; padding:1.5rem 0; color:#475569; font-size:0.875rem;">
+                Start camera to see results
+              </div>
+              <div id="live-result-data" style="display:none;">
+                <div id="lr-badge" style="margin-bottom:0.75rem;"></div>
+                <div style="margin-bottom:0.5rem;">
+                  <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#64748b; margin-bottom:0.25rem;">
+                    <span>Fake Probability</span>
+                    <span id="lr-prob">0%</span>
+                  </div>
+                  <div class="conf-meter"><div class="conf-meter-fill" id="lr-meter" style="width:0%;"></div></div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; font-size:0.75rem;">
+                  <div style="background:#0f172a; border-radius:0.375rem; padding:0.5rem;">
+                    <div style="color:#64748b; margin-bottom:0.25rem;">Confidence</div>
+                    <div style="color:#f1f5f9; font-weight:600;" id="lr-conf">0%</div>
+                  </div>
+                  <div style="background:#0f172a; border-radius:0.375rem; padding:0.5rem;">
+                    <div style="color:#64748b; margin-bottom:0.25rem;">Faces</div>
+                    <div style="color:#f1f5f9; font-weight:600;" id="lr-faces">0</div>
+                  </div>
+                  <div style="background:#0f172a; border-radius:0.375rem; padding:0.5rem;">
+                    <div style="color:#64748b; margin-bottom:0.25rem;">Time</div>
+                    <div style="color:#f1f5f9; font-weight:600;" id="lr-time">0ms</div>
+                  </div>
+                  <div style="background:#0f172a; border-radius:0.375rem; padding:0.5rem;">
+                    <div style="color:#64748b; margin-bottom:0.25rem;">Skipped</div>
+                    <div style="color:#f1f5f9; font-weight:600;" id="lr-skipped">0</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/toast.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/layout.js"></script>
+  <script>
+    initLayout('webcam');
+
+    let stream = null;
+    let pollingInterval = null;
+    let requestInFlight = false;
+    let skippedCount = 0;
+
+    const video = document.getElementById('webcam-video');
+    const canvas = document.getElementById('webcam-canvas');
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+
+    startBtn.addEventListener('click', startCamera);
+    stopBtn.addEventListener('click', stopCamera);
+
+    async function startCamera() {
+      const permMsg = document.getElementById('permission-msg');
+      permMsg.style.display = 'none';
+      startBtn.disabled = true;
+      startBtn.textContent = 'Requesting…';
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+        video.srcObject = stream;
+        await video.play();
+
+        document.getElementById('webcam-placeholder').style.display = 'none';
+        document.getElementById('webcam-live').style.display = 'block';
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'flex';
+
+        skippedCount = 0;
+        pollingInterval = setInterval(captureAndSend, 500);
+      } catch (err) {
+        startBtn.disabled = false;
+        startBtn.textContent = '▶ Start Camera';
+        permMsg.style.display = 'block';
+        if (err.name === 'NotAllowedError') {
+          permMsg.textContent = '⛔ Camera permission denied. Please allow camera access in your browser settings.';
+          permMsg.style.color = '#ef4444';
+        } else if (err.name === 'NotFoundError') {
+          permMsg.textContent = '📷 No camera found on this device.';
+          permMsg.style.color = '#f59e0b';
+        } else {
+          permMsg.textContent = `Camera error: ${err.message}`;
+          permMsg.style.color = '#ef4444';
+        }
+      }
+    }
+
+    function stopCamera() {
+      clearInterval(pollingInterval);
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      video.srcObject = null;
+      document.getElementById('webcam-placeholder').style.display = 'flex';
+      document.getElementById('webcam-live').style.display = 'none';
+      startBtn.style.display = 'flex';
+      startBtn.disabled = false;
+      startBtn.textContent = '▶ Start Camera';
+      stopBtn.style.display = 'none';
+      document.getElementById('live-result-empty').style.display = 'block';
+      document.getElementById('live-result-data').style.display = 'none';
+    }
+
+    async function captureAndSend() {
+      if (requestInFlight || !stream) {
+        skippedCount++;
+        document.getElementById('lr-skipped').textContent = skippedCount;
+        return;
+      }
+      // Tab hidden? skip
+      if (document.hidden) return;
+
+      requestInFlight = true;
+      try {
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        const b64 = canvas.toDataURL('image/jpeg', 0.7);
+
+        const result = await DS.apiFetch('/api/detect/frame', {
+          method: 'POST',
+          body: { image: b64 }
+        });
+        updateLiveResult(result);
+      } catch (err) {
+        // silently ignore frame errors
+      } finally {
+        requestInFlight = false;
+      }
+    }
+
+    function updateLiveResult(r) {
+      document.getElementById('live-result-empty').style.display = 'none';
+      document.getElementById('live-result-data').style.display = 'block';
+
+      const labelColors = { REAL: '#22c55e', FAKE: '#ef4444', UNCERTAIN: '#f59e0b', NO_FACE: '#64748b' };
+      const labelIcons = { REAL: '✅', FAKE: '❌', UNCERTAIN: '⚠️', NO_FACE: '👤' };
+      const color = labelColors[r.label] || '#64748b';
+      const icon = labelIcons[r.label] || '?';
+
+      // Overlay on video
+      const badge = document.getElementById('live-badge');
+      badge.textContent = `${icon} ${r.label}`;
+      badge.style.color = color;
+      document.getElementById('live-conf').textContent = Math.round(r.confidence * 100) + '% conf.';
+      document.getElementById('live-faces').textContent = `👤 ${r.faces_detected} face(s)`;
+
+      // Result card
+      const fp = r.fake_probability;
+      document.getElementById('lr-badge').innerHTML = `<span class="badge badge-${r.label.toLowerCase().replace('_','')}" style="font-size:0.9rem;">${icon} ${r.label}</span>`;
+      document.getElementById('lr-prob').textContent = Math.round(fp * 100) + '%';
+      const meter = document.getElementById('lr-meter');
+      meter.style.width = (fp * 100) + '%';
+      meter.style.background = fp > 0.6 ? '#ef4444' : fp < 0.4 ? '#22c55e' : '#f59e0b';
+      document.getElementById('lr-conf').textContent = Math.round(r.confidence * 100) + '%';
+      document.getElementById('lr-faces').textContent = r.faces_detected;
+      document.getElementById('lr-time').textContent = r.processing_time_ms + 'ms';
+      document.getElementById('lr-skipped').textContent = skippedCount;
+    }
+  </script>
+</body>
+</html>
+
